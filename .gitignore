@@ -39,3 +39,7 @@ next-env.d.ts
 
 # Ignore VS Code workspace settings
 .vscode/
+
+
+
+/lib/generated/prisma
