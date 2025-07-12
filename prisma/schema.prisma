@@ -115,6 +115,7 @@ model Question {
   id           String                   @id @default(cuid())
   title        String                   @db.VarChar(255)
   description  String                   @db.Text
+  attempt      String                   @db.Text
   authorId     String
   author       User                     @relation(fields: [authorId], references: [id])
   views        Int                      @default(0)
@@ -124,6 +125,7 @@ model Question {
   searchVector Unsupported("TSVECTOR")? // Add this line back
 
   answers      Answer[]
+  amswersCount Int               @default(0) // Count of answers for quick access
   questionTags TagsOnQuestions[] // Many-to-many relationship with Tag
 
   @@index([authorId])

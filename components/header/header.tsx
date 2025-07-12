@@ -1,10 +1,9 @@
-import { Button } from "@/components/ui/button"
 import { Logo } from "./logo"
 import { SearchBar } from "./search-bar"
 import { NotificationsDropdown } from "./notifications-dropdown"
 import { AchievementsDropdown } from "./achievements-dropdown"
 import { UserMenu } from "./user-menu"
-import { CommunityNotifications } from "./community-notifications"
+
 
 export function Header() {
   return (
@@ -14,11 +13,6 @@ export function Header() {
           {/* Logo and Navigation */}
           <div className="flex items-center space-x-6">
             <Logo />
-            <nav className="hidden md:flex items-center space-x-4">
-              <Button variant="ghost" size="sm">
-                Products
-              </Button>
-            </nav>
           </div>
 
           {/* Search Bar */}
@@ -26,7 +20,6 @@ export function Header() {
 
           {/* Right Side Icons */}
           <div className="flex items-center space-x-2">
-            <CommunityNotifications />
             <NotificationsDropdown />
             <AchievementsDropdown />
             <UserMenu />

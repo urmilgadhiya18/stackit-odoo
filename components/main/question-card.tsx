@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 interface Question {
   id: number
   title: string
+  description: string
   votes: number
   answers: number
   views: number
@@ -19,8 +20,13 @@ interface QuestionCardProps {
 }
 
 export function QuestionCard({ question }: QuestionCardProps) {
+  const truncateDescription = (text: string, maxLength: number = 150) => {
+    if (text.length <= maxLength) return text
+    return text.substring(0, maxLength) + "..."
+  }
+
   return (
-    <Card className="hover:shadow-md transition-shadow">
+    <Card className="border border-gray-100 hover:border-gray-200 transition-colors shadow-none">
       <CardContent className="p-4">
         <div className="flex space-x-4">
           {/* Vote/Answer Stats */}
@@ -48,6 +54,10 @@ export function QuestionCard({ question }: QuestionCardProps) {
             <h3 className="text-lg font-medium text-blue-600 hover:text-blue-800 cursor-pointer mb-2">
               {question.title}
             </h3>
+
+            <p className="text-sm text-gray-700 mb-3 leading-relaxed">
+              {truncateDescription(question.description)}
+            </p>
 
             <div className="flex items-center justify-between">
               <div className="flex flex-wrap gap-1">

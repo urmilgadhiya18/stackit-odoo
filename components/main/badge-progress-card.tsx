@@ -1,17 +1,19 @@
 import { Settings } from "lucide-react"
 import { Progress } from "@/components/ui/progress"
 import { StatsCard } from "./stats-card"
+import {Avatar, AvatarFallback} from "@/components/ui/avatar";
 
 export function BadgeProgressCard() {
   return (
-    <StatsCard title="Badge progress" action={<Settings className="w-4 h-4 text-gray-400" />}>
+    <StatsCard title="Badge progress">
       <div className="space-y-2">
-        <div className="flex items-center justify-between text-sm">
-          <span>Autobiographer</span>
-          <span className="text-gray-500">0/1</span>
+        <div className="flex flex-col items-start justify-between text-sm gap-4">
+
+            <Avatar>
+                <AvatarFallback className="bg-blue-500 text-white">A</AvatarFallback>
+            </Avatar>
+            <span>Autobiographer</span>
         </div>
-        <Progress value={0} className="h-2" />
-        <p className="text-xs text-gray-500">Complete "About Me" section of user profile.</p>
       </div>
     </StatsCard>
   )

@@ -10,12 +10,7 @@ export function Sidebar() {
         <NavigationItem icon={<Home />} label="Home" isActive />
         <NavigationItem icon={<MessageSquare />} label="Questions" />
         <NavigationItem icon={<Tag />} label="Tags" />
-        <NavigationItem icon={<Bookmark />} label="Saves" />
-        <NavigationItem icon={<Zap />} label="Challenges" badge="NEW" badgeVariant="default" />
-        <NavigationItem icon={<MessageCircle />} label="Chat" />
-        <NavigationItem icon={<FileText />} label="Articles" />
         <NavigationItem icon={<Users />} label="Users" />
-        <NavigationItem icon={<Building2 />} label="Companies" />
 
         <Separator className="my-4" />
 
