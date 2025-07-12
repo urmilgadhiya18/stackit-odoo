@@ -14,40 +14,52 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Better Auth Models - Keep as is
 model User {
-  id            String    @id
+  id            String   @id @default(cuid()) // Use cuid for robust ID generation
   name          String
-  email         String
-  emailVerified Boolean
+  email         String   @unique
+  emailVerified Boolean  @default(false)
   image         String?
-  createdAt     DateTime
-  updatedAt     DateTime
+  role          UserRole @default(user) // Added UserRole enum
+  reputation    Int      @default(0) // User reputation score
+  bio           String?  @db.Text
+  location      String?
+  website       String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
   sessions      Session[]
   accounts      Account[]
+  questions     Question[]
+  answers       Answer[]
+  votes         Vote[]
+  comments      Comment[] // For future comment feature
+  notifications Notification[]
+  tagsFollowed  TagsOnUsers[] // For personalized feed/recommendations
+  UserBadges    UserBadges[]
 
-  @@unique([email])
   @@map("user")
 }
 
 model Session {
-  id        String   @id
+  id        String   @id @default(cuid())
   expiresAt DateTime
-  token     String
-  createdAt DateTime
-  updatedAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
   ipAddress String?
   userAgent String?
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([token])
   @@map("session")
 }
 
 model Account {
-  id                    String    @id
-  accountId             String
-  providerId            String
+  id                    String    @id @default(cuid())
+  accountId             String // e.g., Google user ID, GitHub user ID
+  providerId            String // e.g., "google", "github"
   userId                String
   user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   accessToken           String?
@@ -56,20 +68,196 @@ model Account {
   accessTokenExpiresAt  DateTime?
   refreshTokenExpiresAt DateTime?
   scope                 String?
-  password              String?
-  createdAt             DateTime
-  updatedAt             DateTime
+  password              String? // For email/password accounts
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 
+  @@unique([providerId, accountId]) // Ensures unique external accounts
   @@map("account")
 }
 
 model Verification {
-  id         String    @id
+  id         String   @id @default(cuid())
   identifier String
   value      String
   expiresAt  DateTime
-  createdAt  DateTime?
-  updatedAt  DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
+  @@unique([identifier, value])
   @@map("verification")
+}
+
+// Enums
+enum UserRole {
+  guest // Not directly stored for logged-in users, but conceptual for permissions
+  user
+  admin
+}
+
+enum NotificationType {
+  ANSWER_TO_QUESTION
+  COMMENT_ON_ANSWER
+  MENTION
+  ANSWER_ACCEPTED
+  VOTE_THRESHOLD
+  BADGE_EARNED
+}
+
+enum VoteType {
+  UPVOTE
+  DOWNVOTE
+}
+
+// Core Q&A Models
+
+model Question {
+  id           String                   @id @default(cuid())
+  title        String                   @db.VarChar(255)
+  description  String                   @db.Text
+  authorId     String
+  author       User                     @relation(fields: [authorId], references: [id])
+  views        Int                      @default(0)
+  createdAt    DateTime                 @default(now())
+  updatedAt    DateTime                 @updatedAt
+  isDeleted    Boolean                  @default(false) // Soft delete for moderation
+  searchVector Unsupported("TSVECTOR")? // Add this line back
+
+  answers      Answer[]
+  questionTags TagsOnQuestions[] // Many-to-many relationship with Tag
+
+  @@index([authorId])
+  @@index([createdAt])
+  @@map("question")
+}
+
+model Answer {
+  id         String   @id @default(cuid())
+  content    String   @db.Text
+  authorId   String
+  author     User     @relation(fields: [authorId], references: [id])
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  isAccepted Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  isDeleted  Boolean  @default(false) // Soft delete for moderation
+
+  votes    Vote[]
+  comments Comment[] // For future comment feature
+
+  @@index([authorId])
+  @@index([questionId])
+  @@index([isAccepted])
+  @@map("answer")
+}
+
+model Tag {
+  id          String   @id @default(cuid())
+  name        String   @unique @db.VarChar(50)
+  description String?  @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  questionTags   TagsOnQuestions[] // Many-to-many relationship with Question
+  usersFollowing TagsOnUsers[] // Many-to-many relationship for users following tags
+
+  @@map("tag")
+}
+
+// Junction table for Many-to-Many between Question and Tag
+model TagsOnQuestions {
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  tagId      String
+  tag        Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([questionId, tagId]) // Composite primary key
+  @@map("tags_on_questions")
+}
+
+// Voting System
+model Vote {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  answerId  String
+  answer    Answer   @relation(fields: [answerId], references: [id], onDelete: Cascade)
+  type      VoteType // UPVOTE or DOWNVOTE
+  createdAt DateTime @default(now())
+
+  @@unique([userId, answerId]) // A user can only vote once per answer
+  @@index([answerId])
+  @@map("vote")
+}
+
+// Notifications
+model Notification {
+  id          String           @id @default(cuid())
+  recipientId String
+  recipient   User             @relation(fields: [recipientId], references: [id])
+  type        NotificationType
+  message     String           @db.Text
+  isRead      Boolean          @default(false)
+  // Optional: Store ID of the related entity (question, answer, comment) for deep linking
+  entityId    String?
+  entityType  String? // e.g., "Question", "Answer", "Comment"
+  createdAt   DateTime         @default(now())
+
+  @@index([recipientId, isRead, createdAt]) // Optimize for fetching unread notifications
+  @@map("notification")
+}
+
+// Future Expansion: Comments (Answers can have comments)
+model Comment {
+  id        String   @id @default(cuid())
+  content   String   @db.Text
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id])
+  answerId  String
+  answer    Answer   @relation(fields: [answerId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  isDeleted Boolean  @default(false) // Soft delete
+
+  @@index([authorId])
+  @@index([answerId])
+  @@map("comment")
+}
+
+// For Personalized Content Feed / Tag Following
+model TagsOnUsers {
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tagId     String
+  tag       Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([userId, tagId]) // A user can only follow a tag once
+  @@map("tags_on_users")
+}
+
+// Gamification: Badges (Requires separate logic to award)
+model Badge {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?  @db.Text
+  imageUrl    String? // Path to badge icon
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userBadges UserBadges[]
+
+  @@map("badge")
+}
+
+model UserBadges {
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badgeId   String
+  badge     Badge    @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+  awardedAt DateTime @default(now())
+
+  @@id([userId, badgeId]) // A user can only be awarded a specific badge once
+  @@map("user_badges")
 }
